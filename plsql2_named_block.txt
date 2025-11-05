@@ -1,0 +1,71 @@
+-- Named PL/SQL Block: PL/SQL Stored Procedure and Stored Function.
+Write a Stored Procedure namely proc_Grade for the categorization of student. If marks scoredby
+students in examination is <=1500 and marks>=990 then student will be placed in distinction
+category if marks scored are between 989 and 900 category is first class, if marks 899 and 825
+category is Higher Second Class.
+Write a PL/SQL block to use procedure created with above requirement.
+Stud_Marks(name, total_marks) Result(Roll,Name, Class)
+
+
+create database students;
+\c students;
+
+create table stud_marks(
+    roll_no int,
+    name text,
+    total_marks int
+);
+
+create table result(
+    roll_no int,
+    name text,
+    class text
+);
+
+insert into stud_marks values
+      (101, 'Aarav', 1450),
+      (102, 'Isha', 1200),
+      (103, 'Meera', 880),
+      (104, 'Kabir', 950),
+      (105, 'Riya', 1000),
+      (106, 'Sonia', 1020),
+      (107, 'Rahul', 800);
+
+create or replace procedure proc_grade(p_roll_no int)
+language plpgsql
+as $$
+declare
+      v_name text;
+      v_marks int;
+      v_grade text;
+begin
+      select name into v_name from stud_marks where roll_no = p_roll_no;
+      select total_marks into v_marks from stud_marks where roll_no = p_roll_no;
+
+      if v_marks between 990 and 1500 then
+              v_grade := 'distinction';
+      elsif v_marks between 900 and 989 then
+              v_grade := 'first class';
+      elsif v_marks between 825 and 899 then
+              v_grade := 'higher second class';
+      else
+              v_grade := 'no grade';
+      end if;
+
+      insert into result values (p_roll_no, v_name, v_grade);
+end;
+$$;
+
+do $$
+declare
+      rec record;
+begin
+      for rec in select * from stud_marks loop
+              call proc_grade(rec.roll_no);
+      end loop;
+
+      for rec in select * from result loop
+              raise notice 'roll no: %, name: %, class: %', rec.roll_no, rec.name, rec.class;
+      end loop;
+end;
+$$ language plpgsql;

@@ -1,0 +1,72 @@
+-- Unnamed PL/SQL code block: Use of Control structure and Exception handling is
+mandatory.
+Suggested Problem statement:
+Consider Tables:
+1. Borrower(Roll_no, Name, DateofIssue, NameofBook, Status)
+2. Fine(Roll_no,Date,Amt)
+Accept Roll_no and NameofBook from user.
+Check the number of days (from date of issue).
+If days are between 15 to 30 then fine amount will be Rs 5per day.
+If no. of days>30, per day fine will be Rs 50 per day and for days less than 30, Rs. 5 per
+day.
+After submitting the book, status will change from I to R.
+If condition of fine is true, then details will be stored into fine table.
+Also handles the exception by named exception handler or user define exception handler
+
+create database library;
+\c library;
+
+create table borrower(
+    roll_no INT,
+    name TEXT,
+    date_of_issue DATE,
+    name_of_book TEXT,
+    status CHAR(1)
+);
+
+create table fine(
+    roll_no INT,
+    return_date DATE,
+    amount NUMERIC(10,2)
+);
+
+insert into borrower values
+(101, 'Alice', '2025-10-01', 'Mathematics', 'I'),
+(102, 'Bob', '2025-09-15', 'Physics', 'I'),
+(103, 'Charlie', '2025-09-20', 'Chemistry', 'I'),
+(104, 'David', '2025-10-05', 'Biology', 'I'),
+(105, 'Eve', '2025-09-25', 'English', 'I');
+
+
+do $$
+declare
+      v_roll_no int:= 103;
+      v_nameofbook text:= 'Chemistry';
+      v_dateofissue date;
+      v_days int;
+      v_fine numeric:= 0;
+begin
+      select dateofissue into v_dateofissue from borrower where roll_no= v_roll_no and nameofbook= v_nameofbook;
+      if not found then
+              raise notice 'not found!';
+              return;
+      end if;
+      v_days:= current_date - v_dateofissue;
+      raise notice 'days since issue: %', v_days;
+      if v_days> 30 then
+              v_fine := 30*5 + (v_days - 30)*50;
+      elsif v_days>=15 then
+              v_fine := v_days * 5;
+      else
+              v_fine:= 0;
+      end if;
+      raise notice 'calculated fine: %', v_fine;
+      update borrower set status= 'R' where roll_no= v_roll_no and nameofbook= v_nameofbook;
+      if v_fine>0 then
+              insert into fine values (v_roll_no, current_date, v_fine);
+      end if;
+exception
+      when others then
+              raise notice 'unexpected error!';
+end;
+$$ language plpgsql;

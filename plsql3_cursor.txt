@@ -1,0 +1,49 @@
+-- Cursors: (All types: Implicit, Explicit, Cursor FOR Loop, Parameterized Cursor)
+Write a PL/SQL block of code using parameterized Cursor that will merge the data availablein
+the newly created table N_RollCall with the data available in the table O_RollCall. If the data in
+the first table already exist in the second table then that data should be skipped.
+
+
+create database school;
+\c school;
+
+insert into O_RollCall values
+(101, 'aarna'),
+(102, 'bonnie'),
+(103, 'charlie'),
+(104, 'diya');
+
+insert into N_RollCall values
+(103, 'charlie'),
+(104, 'diya'),
+(105, 'eva'),
+(106, 'falak'),
+(107, 'gigi');
+
+create or replace procedure merge_rollcalls()
+language plpgsql
+as $$
+declare
+	merge_cur refcursor;
+	rec record;
+	r record;
+	v_exists int;
+begin
+	for r in select * from N_RollCall loop
+		select count(*) into v_exists from O_RollCall where roll_no= r.roll_no;
+		if v_exists= 0 then
+			open merge_cur for select * from N_RollCall where roll_no= r.roll_no;
+			fetch merge_cur into rec;
+			insert into O_RollCall values (rec.roll_no, rec.name);
+			raise notice 'inserted roll no: %, name: %', rec.roll_no, rec.name;
+			close merge_cur;
+		else
+			raise notice 'skipped (already exists) roll no: %, name: %', r.roll_no, r.name; 
+		end if;
+	end loop;
+exception
+	when others then 
+		raise notice 'unexpected error!';
+end;
+$$;
+call merge_rollcalls();

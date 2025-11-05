@@ -1,0 +1,104 @@
+-- Database Trigger (All Types: Row level and Statement level triggers, Before and After
+Triggers).
+Write a database trigger on Library table. The System should keep track of the records that are
+being updated or deleted. The old value of updated or deleted records should be added in
+Library_Audit table
+
+create database libDB;
+\c libDB;
+
+create table library(
+book_id int primary key,
+title text,
+author text,
+price numeric(8,2)
+);
+
+create table library_audit(
+audit_id serial primary key,
+book_id int,
+title text,
+author text,
+price numeric(8,2),
+operation text,
+changed_on timestamp default current_timestamp
+);
+
+insert into library values
+(101, 'math', 'aarna', 100),
+(102, 'biology', 'bob', 120),
+(103, 'physics', 'charlie', 150),
+(104, 'cs', 'debby', 200);
+
+create or replace function before_rowlevel() returns trigger
+language plpgsql
+as $$
+begin
+	if tg_op= 'UPDATE' then
+		insert into library_audit (book_id, title, author, price, operation) values 
+		(old.book_id, old.title, old.author, old.price, tg_op);
+		raise notice 'row level trigger (update) for book_id: %', old.book_id;
+		return new;
+	elsif tg_op= 'DELETE' then
+		insert into library_audit (book_id, title, author, price, operation) values 
+		(old.book_id, old.title, old.author, old.price, tg_op);
+		raise notice 'row level trigger (delete) for book_id: %', old.book_id;
+		return old;
+	elsif tg_op= 'INSERT' then
+		insert into library_audit (book_id, title, author, price, operation) values 
+		(new.book_id, new.title, new.author, new.price, tg_op);
+		raise notice 'row level trigger (insert) for book_id: %', new.book_id;
+		return new;
+	end if;
+end;
+$$;
+
+
+create trigger before_update
+before update on library
+for each row
+execute function before_rowlevel();
+
+create trigger before_delete
+before delete on library
+for each row
+execute function before_rowlevel();
+
+create trigger before_insert
+before insert on library
+for each row
+execute function before_rowlevel();
+
+
+create or replace function after_statementlevel() returns trigger
+language plpgsql
+as $$
+begin
+	insert into library_audit (book_id, title, author, price, operation) values 
+	(null, null, null, null, tg_op);
+	raise notice 'statement level trigger for %', tg_op;
+	return null;
+end;
+$$;
+
+create trigger after_update
+after update on library
+for each statement
+execute function after_statementlevel();
+
+create trigger after_delete
+after delete on library
+for each statement
+execute function after_statementlevel();
+
+create trigger after_insert
+after insert on library
+for each statement
+execute function after_statementlevel();
+
+update library set price= 250 where book_id= 101;
+delete from library where book_id= 102;
+insert into library values (102, 'biology', 'bob', 120);
+
+select * from library_audit;
+select * from library;
