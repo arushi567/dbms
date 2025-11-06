@@ -1,0 +1,140 @@
+-- SQL Queries:
+a. Design and Develop SQL DDL statements which demonstrate the use of SQL objects such
+as Table, View, Index, Sequence, Synonym, different constraints etc.
+b. Write at least 10 SQL queries on the suitable database application using SQL DML
+statements.
+
+-- =============================================================
+-- EMPLOYEE DATABASE (Complete SQL Practical Solution)
+-- =============================================================
+
+-- -------------------------------------------------------------
+-- STEP 1: Create Database and Use It
+-- -------------------------------------------------------------
+CREATE DATABASE EmployeeDB;
+USE EmployeeDB;
+
+-- -------------------------------------------------------------
+-- STEP 2: Create Tables (DDL) with Constraints
+-- -------------------------------------------------------------
+
+CREATE TABLE Department (
+  dept_id INT PRIMARY KEY,
+  dept_name VARCHAR(50) UNIQUE NOT NULL,
+  location VARCHAR(50) DEFAULT 'Head Office'
+);
+
+CREATE TABLE Employee (
+  emp_id INT AUTO_INCREMENT PRIMARY KEY,
+  emp_name VARCHAR(50) NOT NULL,
+  gender CHAR(1) CHECK (gender IN ('M','F')),
+  age INT CHECK (age >= 18),
+  salary DECIMAL(10,2) CHECK (salary > 0),
+  hire_date DATE,
+  dept_id INT,
+  email VARCHAR(100) UNIQUE,
+  FOREIGN KEY (dept_id) REFERENCES Department(dept_id)
+);
+
+-- -------------------------------------------------------------
+-- STEP 3: Insert Sample Data (DML)
+-- -------------------------------------------------------------
+
+INSERT INTO Department VALUES
+(1, 'HR', 'Delhi'),
+(2, 'IT', 'Mumbai'),
+(3, 'Finance', 'Chennai');
+
+INSERT INTO Employee (emp_name, gender, age, salary, hire_date, dept_id, email) VALUES
+('Arjun', 'M', 25, 55000, '2020-02-15', 2, 'arjun@company.com'),
+('Riya', 'F', 28, 62000, '2019-07-10', 1, 'riya@company.com'),
+('Kabir', 'M', 30, 80000, '2018-06-05', 2, 'kabir@company.com'),
+('Isha', 'F', 24, 50000, '2021-03-12', 3, 'isha@company.com'),
+('Meera', 'F', 27, 72000, '2022-01-20', 2, 'meera@company.com');
+
+-- -------------------------------------------------------------
+-- STEP 4: Create Index and View
+-- -------------------------------------------------------------
+-- Index speeds up searches on emp_name
+CREATE INDEX idx_emp_name ON Employee(emp_name);
+
+-- View to show employee with department info
+CREATE VIEW emp_view AS
+SELECT e.emp_name, e.salary, d.dept_name, d.location
+FROM Employee e
+JOIN Department d ON e.dept_id = d.dept_id;
+
+-- -------------------------------------------------------------
+-- STEP 5: 10 DML QUERIES (Demonstrating All Key Concepts)
+-- -------------------------------------------------------------
+
+-- 1 Display all employees
+SELECT * FROM Employee;
+
+-- 2 Find employees with salary greater than 60,000
+SELECT emp_name, salary FROM Employee WHERE salary > 60000;
+
+-- 3 Employees between 24–28 years old
+SELECT emp_name, age FROM Employee WHERE age BETWEEN 24 AND 28;
+
+-- 4 Employees whose name starts with 'M'
+SELECT emp_name FROM Employee WHERE emp_name LIKE 'M%';
+
+-- 5 Count employees in each department
+SELECT d.dept_name, COUNT(e.emp_id) AS total_employees
+FROM Employee e
+JOIN Department d ON e.dept_id = d.dept_id
+GROUP BY d.dept_name;
+
+-- 6 Find highest salary in each department
+SELECT d.dept_name, MAX(e.salary) AS highest_salary
+FROM Employee e
+JOIN Department d ON e.dept_id = d.dept_id
+GROUP BY d.dept_name;
+
+-- 7 Update salary for IT employees (+10% bonus)
+UPDATE Employee
+SET salary = salary * 1.10
+WHERE dept_id = (SELECT dept_id FROM Department WHERE dept_name = 'IT');
+
+-- 8 Delete employees earning below 50,000
+DELETE FROM Employee WHERE salary < 50000;
+
+-- 9 UNION Example – all HR and IT employees (no duplicates)
+SELECT emp_name FROM Employee WHERE dept_id = 1
+UNION
+SELECT emp_name FROM Employee WHERE dept_id = 2;
+
+-- 10 Display all data using the view
+SELECT * FROM emp_view;
+
+-- -------------------------------------------------------------
+-- STEP 6: Demonstrate ALTER, DROP, TRUNCATE
+-- -------------------------------------------------------------
+
+-- Add a new column for performance rating
+ALTER TABLE Employee ADD performance_rating VARCHAR(10) DEFAULT 'Good';
+
+-- Remove the column if needed
+ALTER TABLE Employee DROP COLUMN performance_rating;
+
+-- Remove all rows (keep structure)
+TRUNCATE TABLE Employee;
+
+-- Drop view, index, and tables (for cleanup)
+DROP VIEW emp_view;
+DROP INDEX idx_emp_name ON Employee;
+DROP TABLE Employee;
+DROP TABLE Department;
+
+-- -------------------------------------------------------------
+-- STEP 7: Notes for Sequence & Synonym (MySQL Adaptation)
+-- -------------------------------------------------------------
+-- MySQL doesn’t support SEQUENCE directly.
+-- Use AUTO_INCREMENT for generating unique IDs automatically.
+
+-- MySQL doesn’t have SYNONYM (like Oracle).
+-- Use VIEW or alias instead.
+
+-- Example:
+SELECT emp_name AS EmployeeName, salary AS Pay FROM Employee;
