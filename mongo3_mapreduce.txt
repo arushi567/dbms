@@ -1,0 +1,109 @@
+// MongoDB - Map reduces operations:
+Implement Map reduces operation with suitable example using MongoDB.
+
+
+// ============================================================
+// STEP 1: Select or Create Database
+// ============================================================
+use schoolDB;
+
+// ============================================================
+// STEP 2: Create Collection and Insert Sample Data
+// ============================================================
+db.marks.drop(); // Remove existing data (if any)
+
+db.marks.insertMany([
+  { student: "Aarav", subject: "Math", marks: 85 },
+  { student: "Aarav", subject: "Science", marks: 90 },
+  { student: "Aarav", subject: "English", marks: 80 },
+  { student: "Isha", subject: "Math", marks: 78 },
+  { student: "Isha", subject: "Science", marks: 88 },
+  { student: "Isha", subject: "English", marks: 85 },
+  { student: "Meera", subject: "Math", marks: 92 },
+  { student: "Meera", subject: "Science", marks: 95 },
+  { student: "Meera", subject: "English", marks: 89 },
+  { student: "Rohan", subject: "Math", marks: 60 },
+  { student: "Rohan", subject: "Science", marks: 75 },
+  { student: "Rohan", subject: "English", marks: 70 }
+]);
+
+print("\nSample Data Inserted:");
+db.marks.find().pretty();
+
+// ============================================================
+// QUERY 1: Find total marks scored by each student
+// ============================================================
+// What we need to find:
+// Calculate the SUM of marks for each student across all subjects.
+
+// Map Function → emits (student, marks)
+// Reduce Function → sums all marks for the same student
+var mapTotalMarks = function() {
+  emit(this.student, this.marks);
+};
+
+var reduceTotalMarks = function(student, marksArray) {
+  return Array.sum(marksArray);
+};
+
+// Run MapReduce
+db.marks.mapReduce(
+  mapTotalMarks,
+  reduceTotalMarks,
+  { out: "total_marks" }
+);
+
+print("\nTotal Marks Scored by Each Student:");
+db.total_marks.find().pretty();
+
+// ============================================================
+// QUERY 2: Find average marks of each student
+// ============================================================
+// What we need to find:
+// Calculate the AVERAGE marks of each student across all subjects.
+
+// Map → same as before (student, marks)
+// Reduce → sum of marks
+// Finalize → divide by total subjects (3)
+var finalizeAverage = function(student, totalMarks) {
+  return totalMarks / 3;
+};
+
+db.marks.mapReduce(
+  mapTotalMarks,
+  reduceTotalMarks,
+  {
+    out: "average_marks",
+    finalize: finalizeAverage
+  }
+);
+
+print("\nAverage Marks of Each Student:");
+db.average_marks.find().pretty();
+
+// ============================================================
+// QUERY 3: Find total marks scored per subject
+// ============================================================
+// What we need to find:
+// Calculate the SUM of marks for each SUBJECT (across all students).
+
+var mapSubjectMarks = function() {
+  emit(this.subject, this.marks);
+};
+
+var reduceSubjectMarks = function(subject, marksArray) {
+  return Array.sum(marksArray);
+};
+
+db.marks.mapReduce(
+  mapSubjectMarks,
+  reduceSubjectMarks,
+  { out: "subject_totals" }
+);
+
+print("\nTotal Marks Scored Per Subject:");
+db.subject_totals.find().pretty();
+
+// ============================================================
+// END OF MAPREDUCE PROGRAM
+// ============================================================

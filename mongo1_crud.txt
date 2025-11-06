@@ -1,0 +1,180 @@
+// MongoDB Queries:
+Design and Develop MongoDB Queries using CRUD operations. (Use CRUD operations,
+SAVE method, logical operators etc.).
+
+// --------------------------------------------------
+// MongoDB CRUD OPERATIONS + SAVE + LOGICAL OPERATORS
+// --------------------------------------------------
+
+// 1. Create / use a database
+use collegeDB;
+
+// 2. Create a collection (automatically created on first insert)
+db.students.insertMany([
+  { name: "Aarav", age: 19, grade: "A", subjects: ["Math", "Physics"], isActive: true },
+  { name: "Bhavna", age: 21, grade: "B", subjects: ["Biology", "Chemistry"], isActive: true },
+  { name: "Chirag", age: 22, grade: "A", subjects: ["Math", "CS"], isActive: false },
+  { name: "Diya", age: 18, grade: "C", subjects: ["History", "English"], isActive: true },
+  { name: "Eshan", age: 20, grade: "B", subjects: ["Math", "Chemistry"], isActive: true }
+]);
+
+// View inserted data
+db.students.find().pretty();
+
+
+// --------------------------------------------------
+// 3. CREATE – inserting new documents
+// --------------------------------------------------
+
+// (a) Insert one document
+db.students.insertOne({
+  name: "Farah",
+  age: 23,
+  grade: "A",
+  subjects: ["CS", "AI"],
+  isActive: true
+});
+
+// (b) Insert many documents
+db.students.insertMany([
+  { name: "Gita", age: 24, grade: "B", subjects: ["English"], isActive: false },
+  { name: "Harish", age: 17, grade: "C", subjects: ["Math"], isActive: true }
+]);
+
+// Confirm inserts
+db.students.find().pretty();
+
+
+// --------------------------------------------------
+// 4. READ – querying and logical operators
+// --------------------------------------------------
+
+// (a) Simple find
+db.students.find({ grade: "A" });
+
+// (b) Using comparison operators
+// Find students older than 20
+db.students.find({ age: { $gt: 20 } });
+
+// (c) Using logical operators
+// $and → age >= 18 AND isActive = true
+db.students.find({
+  $and: [
+    { age: { $gte: 18 } },
+    { isActive: true }
+  ]
+});
+
+// $or → students who study 'Math' OR 'English'
+db.students.find({
+  $or: [
+    { subjects: "Math" },
+    { subjects: "English" }
+  ]
+});
+
+// $in → grade is either A or B
+db.students.find({ grade: { $in: ["A", "B"] } });
+
+// Combined example → grade A or B, AND isActive
+db.students.find({
+  $and: [
+    { grade: { $in: ["A", "B"] } },
+    { isActive: true }
+  ]
+});
+
+// Sort, limit, and project
+db.students.find({}, { name: 1, grade: 1, age: 1, _id: 0 }).sort({ age: -1 }).limit(5);
+
+
+// --------------------------------------------------
+// 5. UPDATE – modifying existing documents
+// --------------------------------------------------
+
+// (a) Update one field
+db.students.updateOne(
+  { name: "Diya" },
+  { $set: { grade: "B" } }
+);
+
+// (b) Update many
+db.students.updateMany(
+  { isActive: true },
+  { $inc: { age: 1 } } // increase age by 1 for all active students
+);
+
+// (c) Replace an entire document
+db.students.replaceOne(
+  { name: "Eshan" },
+  { name: "Eshan", age: 22, grade: "A", subjects: ["Math", "Physics"], isActive: true }
+);
+
+// (d) Replace an entire document – with upsert
+db.students.replaceOne(
+  { name: "Eshan" },  // Filter: if a document with this name exists
+  { name: "Eshan", age: 22, grade: "A", subjects: ["Math", "Physics"], isActive: true },
+  { upsert: true }    // Option: if not found, insert as new document
+);
+
+// Confirm updates
+db.students.find().pretty();
+
+
+// --------------------------------------------------
+// 6. SAVE method (deprecated)
+// --------------------------------------------------
+
+// The `.save()` method replaces or inserts a document.
+// If the document already has an `_id`, it will **update** it.
+// If not, it will **insert** a new one.
+
+// Example 1: Update an existing document
+var student = db.students.findOne({ name: "Aarav" });
+student.grade = "A+";
+db.students.save(student);  // Saves updated document (replaces old one)
+
+// Example 2: Insert new document (since no _id yet)
+db.students.save({
+  name: "Isha",
+  age: 19,
+  grade: "B",
+  subjects: ["Chemistry"],
+  isActive: true
+});
+
+// Verify
+db.students.find({ name: { $in: ["Aarav", "Isha"] } });
+
+// since save is deprecated, replaceOne() can be used with upsert: true
+
+// If the student already exists, replace their data entirely
+db.students.replaceOne(
+  { name: "Aarav" }, // Filter (acts like _id in save)
+  { name: "Aarav", age: 20, grade: "A+", subjects: ["Math", "Physics"], isActive: true },
+  { upsert: true }   // Insert if not found (same as save)
+);
+
+
+
+// --------------------------------------------------
+// 7. DELETE – remove documents
+// --------------------------------------------------
+
+// (a) Delete one document
+db.students.deleteOne({ name: "Harish" });
+
+// (b) Delete many documents (e.g., all inactive students)
+db.students.deleteMany({ isActive: false });
+
+// Verify
+db.students.find().pretty();
+
+
+// --------------------------------------------------
+// 8. BONUS – aggregation example (optional for extra marks)
+// --------------------------------------------------
+db.students.aggregate([
+  { $group: { _id: "$grade", total: { $sum: 1 } } },
+  { $sort: { total: -1 } }
+]);
